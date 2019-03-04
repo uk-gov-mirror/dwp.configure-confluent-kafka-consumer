@@ -4,6 +4,7 @@ import boto3
 import logging
 import os
 import json
+import requests
 
 # Initialise logging
 logger = logging.getLogger(__name__)
@@ -54,6 +55,9 @@ def configure_confluent_kafka_consumer(event, args):
         logger.debug(f"Using boto3 {boto3.__version__}")
 
     logger.debug(event)
+
+    message = json.loads(event['Records'][0]['Sns']['Message'])
+    logger.debug(message)
 
 
 if __name__ == "__main__":
