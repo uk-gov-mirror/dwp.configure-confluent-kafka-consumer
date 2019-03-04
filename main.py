@@ -36,6 +36,14 @@ def get_parameters():
 
 
 def handler(event, context):
+    args = get_parameters()
+    try:
+        configure_confluent_kafka_consumer(event, args)
+    except KeyError as key_name:
+        logger.error(f'Key: {key_name} is required in payload')
+
+
+def configure_confluent_kafka_consumer(event, args):
     if 'AWS_PROFILE' in os.environ:
         boto3.setup_default_session(profile_name=args.aws_profile,
                                     region_name=args.aws_region)
@@ -50,12 +58,8 @@ def handler(event, context):
 
 if __name__ == "__main__":
     try:
-        args = get_parameters()
         json_content = json.loads(open('event.json', 'r').read())
-        try:
-            handler(json_content, None)
-        except KeyError as key_name:
-            logger.error(f'Key: {key_name} is required in payload')
+        handler(json_content, None)
     except Exception as e:
         logger.error("Unexpected error occurred")
         logger.error(e)
