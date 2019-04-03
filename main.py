@@ -73,6 +73,10 @@ def get_parameters():
         _args.retry_attempts = os.environ["RETRY_ATTEMPTS"]
     if "RETRY_BACKOFF_FACTOR" in os.environ:
         _args.retry_backoff_factor = os.environ["RETRY_BACKOFF_FACTOR"]
+
+    _args.initial_wait_time = int(_args.initial_wait_time)
+    _args.retry_attempts = int(_args.retry_attempts)
+    _args.retry_backoff_factor = float(_args.retry_backoff_factor)
     return _args
 
 
@@ -119,7 +123,9 @@ def configure_confluent_kafka_consumer(event, args):
     }
 
     # Confluent's Kafka consumer containers can take a while to start up the
-    # REST API, so configure requests to retry the initial API call
+    # REST API, so sleep for an initial wait period, then configure requests to
+    # retry the initial API call with an exponential backoff
+    time.sleep(args.initial_wait_time)
     s = requests.Session()
     retries = Retry(total=args.retry_attempts, backoff_factor=args.retry_backoff_factor)
     s.mount("http://", HTTPAdapter(max_retries=retries))
