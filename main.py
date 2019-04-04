@@ -7,9 +7,6 @@ import requests
 import sys
 import time
 
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-
 # Initialise logging
 logger = logging.getLogger(__name__)
 log_level = os.environ["LOG_LEVEL"] if "LOG_LEVEL" in os.environ else "ERROR"
@@ -69,14 +66,8 @@ def get_parameters():
         _args.s3_bucket_name = os.environ["S3_BUCKET_NAME"]
     if "INITIAL_WAIT_TIME" in os.environ:
         _args.initial_wait_time = os.environ["INITIAL_WAIT_TIME"]
-    if "RETRY_ATTEMPTS" in os.environ:
-        _args.retry_attempts = os.environ["RETRY_ATTEMPTS"]
-    if "RETRY_BACKOFF_FACTOR" in os.environ:
-        _args.retry_backoff_factor = os.environ["RETRY_BACKOFF_FACTOR"]
 
     _args.initial_wait_time = int(_args.initial_wait_time)
-    _args.retry_attempts = int(_args.retry_attempts)
-    _args.retry_backoff_factor = float(_args.retry_backoff_factor)
     return _args
 
 
@@ -86,6 +77,10 @@ def handler(event, context):
         configure_confluent_kafka_consumer(event, args)
     except KeyError as key_name:
         logger.error(f"Key: {key_name} is required in payload")
+    except Exception as e:
+        logger.error("Unexpected error occurred")
+        logger.error(e)
+        sys.exit(1)
 
 
 def configure_confluent_kafka_consumer(event, args):
@@ -123,60 +118,54 @@ def configure_confluent_kafka_consumer(event, args):
     }
 
     # Confluent's Kafka consumer containers can take a while to start up the
-    # REST API, so sleep for an initial wait period, then configure requests to
-    # retry the initial API call with an exponential backoff
+    # REST API, so sleep until it's ready
+    logger.info("Waiting for REST API to become available")
     time.sleep(args.initial_wait_time)
-    s = requests.Session()
-    retries = Retry(total=args.retry_attempts, backoff_factor=args.retry_backoff_factor)
-    s.mount("http://", HTTPAdapter(max_retries=retries))
 
     # Get a list of existing connectors
-    response = s.get(f"http://{private_ip}:{args.port}/connectors")
+    api_base_url = f"http://{private_ip}:{args.port}/connectors"
+    try:
+        logger.info("Retrieving list of connectors")
+        logger.debug(f"GET request on {api_base_url}")
+        response = requests.get(f"{api_base_url}", timeout=1)
+    except Exception:
+        # If the GET request fails, it's likely the container hasn't finished
+        # starting the REST API service, so bail out now as nothing else is
+        # going to work
+        logger.error(
+            f"Error communicating with worker's REST API. Is --initial-wait-time (INITIAL_WAIT_TIME) long enough?"
+        )
+        raise
 
     existing_connectors = json.loads(response.text)
-
-    # Check if required connector already exists
+    logger.debug(f"Current connectors: {existing_connectors}")
 
     if args.connector_name in existing_connectors:
-        logger.debug("update connector [PUT]")
-        # PUT payload to update existing connector
+        logger.info(f"Updating {args.connector_name} connector config")
+        logger.debug(f"PUT request on {api_base_url}/{args.connector_name}/config")
         response = requests.put(
-            f"http://{private_ip}:{args.port}/connectors/{args.connector_name}/config",
-            json=connector_config,
+            f"{api_base_url}/{args.connector_name}/config", json=connector_config
         )
         logger.debug(response.text)
-
     else:
-
         payload = {"name": args.connector_name, "config": connector_config}
-
-        # POST payload if connectors don't exist
-
-        logger.debug("create connector [POST]")
-
-        response = requests.post(
-            f"http://{private_ip}:{args.port}/connectors", json=payload
-        )
+        logger.info(f"Creating {args.connector_name} connector")
+        logger.debug(f"POST request on {api_base_url}")
+        response = requests.post(f"{api_base_url}", json=payload)
         logger.debug(response.text)
-
-    # DELETE all others
 
     for existing_connector in existing_connectors:
         if existing_connector != args.connector_name:
-
-            logger.debug("delete connector [DELETE]")
-
-            response = requests.delete(
-                f"http://{private_ip}:{args.port}/connectors/{existing_connector}"
-            )
+            logger.info(f"Deleting connector {existing_connector}")
+            logger.debug(f"DELETE request on {api_base_url}/{existing_connector}")
+            response = requests.delete(f"{api_base_url}/{existing_connector}")
             logger.debug(response.text)
 
 
 if __name__ == "__main__":
     try:
         json_content = json.loads(open("event.json", "r").read())
-        handler(json_content, None)
     except Exception as e:
-        logger.error("Unexpected error occurred")
         logger.error(e)
-        raise e
+        sys.exit(1)
+    handler(json_content, None)
