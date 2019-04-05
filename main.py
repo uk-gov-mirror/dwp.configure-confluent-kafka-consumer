@@ -141,12 +141,20 @@ def configure_confluent_kafka_consumer(event, args):
     logger.debug(f"Current connectors: {existing_connectors}")
 
     if args.connector_name in existing_connectors:
-        logger.info(f"Updating {args.connector_name} connector config")
-        logger.debug(f"PUT request on {api_base_url}/{args.connector_name}/config")
-        response = requests.put(
-            f"{api_base_url}/{args.connector_name}/config", json=connector_config
-        )
+        logger.info(f"Getting {args.connector_name} connector config for comparison")
+        logger.debug(f"GET request on {api_base_url}/{args.connector_name}/config")
+        response = requests.get(f"{api_base_url}/{args.connector_name}/config")
         logger.debug(response.text)
+        current_config = json.loads(response.text)
+        logger.debug(f"current connector config = {current_config}")
+        logger.debug(f"requested connector config = {connector_config}")
+        if current_config != connector_config:
+            logger.info(f"Updating {args.connector_name} connector config")
+            logger.debug(f"PUT request on {api_base_url}/{args.connector_name}/config")
+            response = requests.put(
+                f"{api_base_url}/{args.connector_name}/config", json=connector_config
+            )
+            logger.debug(response.text)
     else:
         payload = {"name": args.connector_name, "config": connector_config}
         logger.info(f"Creating {args.connector_name} connector")
