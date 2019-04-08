@@ -34,15 +34,25 @@ def get_parameters():
     parser.add_argument("--port", default="8083")
     parser.add_argument("--s3-bucket-name", default="")
     parser.add_argument(
+        "--storage-class", default="io.confluent.connect.s3.storage.S3Storage"
+    )
+    parser.add_argument(
+        "--format-class", default="io.confluent.connect.s3.format.json.JsonFormat"
+    )
+    parser.add_argument(
+        "--partitioner-class",
+        default="io.confluent.connect.storage.partitioner.TimeBasedPartitioner",
+    )
+    parser.add_argument("--topics-dir", default="")
+    parser.add_argument("--timestamp-extractor", default="Wallclock")
+    parser.add_argument("--partition-duration-ms", default="86400000")
+    parser.add_argument("--path-format", default="YYYY'-'MM'-'dd")
+    parser.add_argument("--locale", default="GB")
+    parser.add_argument("--timezone", default="UTC")
+    parser.add_argument(
         "--initial-wait-time",
         default=1,
         help="How long to wait (in seconds) before making the initial REST API call",
-    )
-    parser.add_argument("--retry-attempts", default=3)
-    parser.add_argument(
-        "--retry-backoff-factor",
-        default=0,
-        help="Backoff rate for retries (see https://urllib3.readthedocs.io/en/latest/reference/urllib3.util.html#module-urllib3.util.retry)",
     )
 
     _args = parser.parse_args()
@@ -64,6 +74,24 @@ def get_parameters():
         _args.port = os.environ["PORT"]
     if "S3_BUCKET_NAME" in os.environ:
         _args.s3_bucket_name = os.environ["S3_BUCKET_NAME"]
+    if "STORAGE_CLASS" in os.environ:
+        _args.storage_class = os.environ["STORAGE_CLASS"]
+    if "FORMAT_CLASS" in os.environ:
+        _args.format_class = os.environ["FORMAT_CLASS"]
+    if "PARTITIONER_CLASS" in os.environ:
+        _args.partitioner_class = os.environ["PARTITIONER_CLASS"]
+    if "TOPICS_DIR" in os.environ:
+        _args.topics_dir = os.environ["TOPICS_DIR"]
+    if "TIMESTAMP_EXTRACOTR" in os.environ:
+        _args.timestamp_extractor = os.environ["TIMESTAMP_EXTRACTOR"]
+    if "PARTITION_DURATION_MS" in os.environ:
+        _args.partition_duration_ms = os.environ["PARTITION_DURATION_MS"]
+    if "PATH_FORMAT" in os.environ:
+        _args.path_format = os.environ["PATH_FORMAT"]
+    if "LOCALE" in os.environ:
+        _args.locale = os.environ["LOCALE"]
+    if "TIMEZONE" in os.environ:
+        _args.timezone = os.environ["TIMEZONE"]
     if "INITIAL_WAIT_TIME" in os.environ:
         _args.initial_wait_time = os.environ["INITIAL_WAIT_TIME"]
 
@@ -111,10 +139,15 @@ def configure_confluent_kafka_consumer(event, args):
         "flush.size": args.flush_size,
         "s3.region": args.aws_region,
         "s3.bucket.name": args.s3_bucket_name,
-        "storage.class": "io.confluent.connect.s3.storage.S3Storage",
-        "format.class": "io.confluent.connect.s3.format.avro.AvroFormat",
-        "schema.generator.class": "io.confluent.connect.storage.hive.schema.DefaultSchemaGenerator",
-        "partitioner.class": "io.confluent.connect.storage.partitioner.DefaultPartitioner",
+        "storage.class": args.storage_class,
+        "format.class": args.format_class,
+        "partitioner.class": args.partitioner_class,
+        "topics.dir": args.topics_dir,
+        "timestamp.extractor": args.timestamp_extractor,
+        "partition.duration.ms": args.partition_duration_ms,
+        "path.format": args.path_format,
+        "locale": args.locale,
+        "timezone": args.timezone,
     }
 
     # Confluent's Kafka consumer containers can take a while to start up the
