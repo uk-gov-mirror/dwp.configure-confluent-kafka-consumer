@@ -29,10 +29,10 @@ def get_parameters():
     parser.add_argument("--aws-profile", default="default")
     parser.add_argument("--aws-region", default="eu-west-2")
     parser.add_argument("--tasks-max", default="1")
-    parser.add_argument("--topics", default="")
+    parser.add_argument("--topics-regex", default=argparse.SUPPRESS)
     parser.add_argument("--flush-size", default="1")
     parser.add_argument("--port", default="8083")
-    parser.add_argument("--s3-bucket-name", default="")
+    parser.add_argument("--s3-bucket-name", default=argparse.SUPPRESS)
     parser.add_argument(
         "--storage-class", default="io.confluent.connect.s3.storage.S3Storage"
     )
@@ -66,8 +66,8 @@ def get_parameters():
         _args.aws_region = os.environ["AWS_REGION"]
     if "TASKS_MAX" in os.environ:
         _args.tasks_max = os.environ["TASKS_MAX"]
-    if "TOPICS" in os.environ:
-        _args.topics = os.environ["TOPICS"]
+    if "TOPICS_REGEX" in os.environ:
+        _args.topics_regex = os.environ["TOPICS_REGEX"]
     if "FLUSH_SIZE" in os.environ:
         _args.flush_size = os.environ["FLUSH_SIZE"]
     if "PORT" in os.environ:
@@ -96,6 +96,19 @@ def get_parameters():
         _args.initial_wait_time = os.environ["INITIAL_WAIT_TIME"]
 
     _args.initial_wait_time = int(_args.initial_wait_time)
+
+    required_args = ["s3_bucket_name", "topics_regex"]
+    missing_args = []
+    for required_message_key in required_args:
+        if required_message_key not in _args:
+            missing_args.append(required_message_key)
+    if missing_args:
+        raise argparse.ArgumentError(
+            None,
+            "ArgumentError: The following required arguments are missing: {}".format(
+                ", ".join(missing_args)
+            ),
+        )
     return _args
 
 
@@ -135,7 +148,7 @@ def configure_confluent_kafka_consumer(event, args):
     connector_config = {
         "connector.class": "io.confluent.connect.s3.S3SinkConnector",
         "tasks.max": args.tasks_max,
-        "topics": args.topics,
+        "topics.regex": args.topics_regex,
         "flush.size": args.flush_size,
         "s3.region": args.aws_region,
         "s3.bucket.name": args.s3_bucket_name,
