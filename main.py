@@ -179,6 +179,7 @@ def configure_confluent_kafka_consumer(event, args):
         response = requests.get(f"{api_base_url}/{args.connector_name}/config")
         logger.debug(response.text)
         current_config = json.loads(response.text)
+        current_config.pop("name")
         logger.debug(f"current connector config = {current_config}")
         logger.debug(f"requested connector config = {connector_config}")
         if current_config != connector_config:
