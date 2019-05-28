@@ -14,7 +14,7 @@ logger.setLevel(logging.getLevelName(log_level.upper()))
 logging.basicConfig(
     stream=sys.stdout,
     format="%(asctime)s %(levelname)s %(module)s "
-           "%(process)s[%(thread)s] %(message)s",
+    "%(process)s[%(thread)s] %(message)s",
 )
 logger.info("Logging at {} level".format(log_level.upper()))
 
@@ -112,7 +112,7 @@ def get_parameters():
     _args.initial_wait_time = int(_args.initial_wait_time)
     _args.errors_deadletterqueue_topic_replication_factor = int(_args.errors_deadletterqueue_topic_replication_factor)
     _args.errors_deadletterqueue_context_headers_enable = bool(_args.errors_deadletterqueue_context_headers_enable)
-    _args.errors_log_enable = bool(_args.errors__log_enable)
+    _args.errors_log_enable = bool(_args.errors_log_enable)
     required_args = ["s3_bucket_name", "topics_regex"]
     missing_args = []
     for required_message_key in required_args:
