@@ -52,8 +52,12 @@ def get_parameters():
     parser.add_argument("--errors-tolerance", default="all")
     parser.add_argument("--errors-log-enable", default="true")
     parser.add_argument("--errors-deadletterqueue-topic-name", default="")
-    parser.add_argument("--errors-deadletterqueue-topic-replication-factor", default="1")
-    parser.add_argument("--errors-deadletterqueue-context-headers-enable", default="true")
+    parser.add_argument(
+        "--errors-deadletterqueue-topic-replication-factor", default="1"
+    )
+    parser.add_argument(
+        "--errors-deadletterqueue-context-headers-enable", default="true"
+    )
     parser.add_argument(
         "--initial-wait-time",
         default=1,
@@ -92,11 +96,17 @@ def get_parameters():
     if "ERRORS_LOG_ENABLE" in os.environ:
         _args.errors_log_enable = os.environ["ERRORS_LOG_ENABLE"]
     if "ERRORS_DEADLETTERQUEUE_TOPIC_NAME" in os.environ:
-        _args.errors_deadletterqueue_topic_name = os.environ["ERRORS_DEADLETTERQUEUE_TOPIC_NAME"]
+        _args.errors_deadletterqueue_topic_name = os.environ[
+            "ERRORS_DEADLETTERQUEUE_TOPIC_NAME"
+        ]
     if "ERRORS_DEADLETTERQUEUE_TOPIC_REPLICATION_FACTOR" in os.environ:
-        _args.errors_deadletterqueue_topic_replication_factor = os.environ["ERRORS_DEADLETTERQUEUE_TOPIC_REPLICATION_FACTOR"]
+        _args.errors_deadletterqueue_topic_replication_factor = os.environ[
+            "ERRORS_DEADLETTERQUEUE_TOPIC_REPLICATION_FACTOR"
+        ]
     if "ERRORS_DEADLETTERQUEUE_CONTEXT_HEADERS_ENABLE" in os.environ:
-        _args.errors_deadletterqueue_context_headers_enable = os.environ["ERRORS_DEADLETTERQUEUE_CONTEXT_HEADERS_ENABLE"]
+        _args.errors_deadletterqueue_context_headers_enable = os.environ[
+            "ERRORS_DEADLETTERQUEUE_CONTEXT_HEADERS_ENABLE"
+        ]
     if "TIMESTAMP_EXTRACOTR" in os.environ:
         _args.timestamp_extractor = os.environ["TIMESTAMP_EXTRACTOR"]
     if "PARTITION_DURATION_MS" in os.environ:
@@ -110,8 +120,12 @@ def get_parameters():
     if "INITIAL_WAIT_TIME" in os.environ:
         _args.initial_wait_time = os.environ["INITIAL_WAIT_TIME"]
     _args.initial_wait_time = int(_args.initial_wait_time)
-    _args.errors_deadletterqueue_topic_replication_factor = int(_args.errors_deadletterqueue_topic_replication_factor)
-    _args.errors_deadletterqueue_context_headers_enable = bool(_args.errors_deadletterqueue_context_headers_enable)
+    _args.errors_deadletterqueue_topic_replication_factor = int(
+        _args.errors_deadletterqueue_topic_replication_factor
+    )
+    _args.errors_deadletterqueue_context_headers_enable = bool(
+        _args.errors_deadletterqueue_context_headers_enable
+    )
     _args.errors_log_enable = bool(_args.errors_log_enable)
     required_args = ["s3_bucket_name", "topics_regex"]
     missing_args = []
@@ -181,7 +195,7 @@ def configure_confluent_kafka_consumer(event, args):
         "errors.log.enable": args.errors_log_enable,
         "errors.deadletterqueue.topic.name": args.errors_deadletterqueue_topic_name,
         "errors.deadletterqueue.topic.replication.factor": args.errors_deadletterqueue_topic_replication_factor,
-        "errors.deadletterqueue.context.headers.enable": args.errors_deadletterqueue_context_headers_enable
+        "errors.deadletterqueue.context.headers.enable": args.errors_deadletterqueue_context_headers_enable,
     }
 
     # Confluent's Kafka consumer containers can take a while to start up the
